@@ -1,0 +1,31 @@
+{
+  "name": "sn-docs",
+  "version": "0.1.0",
+  "description": "CLI and MCP server for querying docs.servicenow.com",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "bin": {
+    "sn-docs": "bin/sn-docs.js",
+    "sn-docs-mcp": "bin/sn-docs-mcp.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev:cli": "tsx src/cli.ts",
+    "dev:mcp": "tsx src/mcp-server.ts",
+    "test": "vitest run",
+    "test:integration": "INTEGRATION=true vitest run tests/integration.test.ts",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "commander": "^12.0.0",
+    "turndown": "^7.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/turndown": "^5.0.5",
+    "tsx": "^4.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}
