@@ -10,7 +10,13 @@ CLI and MCP server for querying [docs.servicenow.com](https://www.servicenow.com
 
 ### Option A: Download a release
 
-Download `sn-docs-cli.cjs` or `sn-docs-mcp.cjs` from the [latest release](../../releases/latest). Both are single-file bundles — no `npm install` needed.
+Three files available from the [latest release](../../releases/latest):
+
+| File | Use |
+|---|---|
+| `sn-docs-cli.cjs` | Standalone CLI — requires Node.js 20+ |
+| `sn-docs-mcp.cjs` | MCP server for Claude Code / Claude Desktop — requires Node.js 20+ |
+| `servicenow-docs.skill` | Claude skill for Claude.ai or Claude Code — no Node.js needed |
 
 ```bash
 # CLI
@@ -121,6 +127,22 @@ Add to your Claude Desktop config:
 ```
 
 Replace `/path/to/sn-docs-mcp.cjs` with the absolute path to the downloaded file or `dist/mcp-server.js` if building from source.
+
+## Claude Skill (Claude.ai)
+
+`servicenow-docs.skill` is a companion skill that gives Claude direct access to the same Fluid Docs API without requiring a running MCP server. Works in Claude.ai (via the analysis tool) and Claude Code.
+
+### Install
+
+Download `servicenow-docs.skill` from the [latest release](../../releases/latest) and install it via your Claude skill manager.
+
+Once installed, Claude will automatically search live ServiceNow documentation when you ask questions like:
+
+- *"How does Flow Designer work in ServiceNow?"*
+- *"Find the ServiceNow API for creating incidents"*
+- *"Look up the CMDB discovery documentation"*
+
+Claude uses the same endpoints as the MCP server — no Node.js or separate process required.
 
 ## Development
 
