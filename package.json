@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "description": "CLI and MCP server for querying docs.servicenow.com",
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "bin": {
     "sn-docs": "bin/sn-docs.js",
     "sn-docs-mcp": "bin/sn-docs-mcp.js"
@@ -14,7 +16,8 @@
     "dev:mcp": "tsx src/mcp-server.ts",
     "test": "vitest run",
     "test:integration": "INTEGRATION=true vitest run tests/integration.test.ts",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "build:release": "node -e \"require('fs').mkdirSync('release',{recursive:true})\" && npx esbuild src/cli.ts --bundle --platform=node --target=node20 --format=cjs --outfile=release/sn-docs-cli.cjs --banner:js=\"#!/usr/bin/env node\" && npx esbuild src/mcp-server.ts --bundle --platform=node --target=node20 --format=cjs --outfile=release/sn-docs-mcp.cjs --banner:js=\"#!/usr/bin/env node\""
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
@@ -24,6 +27,7 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/turndown": "^5.0.5",
+    "esbuild": "^0.28.0",
     "tsx": "^4.0.0",
     "typescript": "^5.4.0",
     "vitest": "^1.6.0"
