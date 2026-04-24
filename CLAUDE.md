@@ -10,15 +10,36 @@ A Node.js CLI tool and MCP server for querying `docs.servicenow.com` via the Ser
 
 ```bash
 npm install          # Install dependencies
-npm run build        # Compile TypeScript (if TS is used)
-npm start            # Run CLI in production mode
-npm run dev          # Run CLI with hot-reload (ts-node / nodemon)
-npm test             # Run all tests
-npm test -- <file>   # Run a single test file
-npm run lint         # Lint source
+npm run build        # Compile TypeScript → dist/
+npm run dev:cli      # Run CLI via tsx (no build needed)
+npm run dev:mcp      # Run MCP server via tsx (no build needed)
+npm test             # Run unit tests (mocked fetch, no network)
+npm run test:integration  # Run live API smoke tests (requires network)
+npm run lint         # Type-check without emitting
 ```
 
-> Update this section once `package.json` scripts are defined.
+### Run a single test file
+
+```bash
+npx vitest run tests/docs-client.test.ts
+```
+
+### Test the CLI after building
+
+```bash
+npm run build
+node bin/sn-docs.js search "incident" --limit 5
+node bin/sn-docs.js get <contentUrl>
+node bin/sn-docs.js suggest "incid"
+node bin/sn-docs.js locales
+```
+
+### Test the MCP server
+
+```bash
+npm run build
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | node bin/sn-docs-mcp.js
+```
 
 ## Architecture
 
@@ -57,3 +78,20 @@ Base URL pattern: `https://docs.servicenow.com/api/...`
 - `@modelcontextprotocol/sdk` — MCP server scaffolding
 - `node-fetch` / native `fetch` — HTTP client
 - `vitest` or `jest` — testing
+
+## Registering with Claude Code / Claude Desktop
+
+Add to `~/.claude/settings.json` (Claude Code) or Claude Desktop MCP config:
+
+```json
+{
+  "mcpServers": {
+    "sn-docs": {
+      "command": "node",
+      "args": ["/absolute/path/to/bin/sn-docs-mcp.js"]
+    }
+  }
+}
+```
+
+Build first (`npm run build`). The server requires no environment variables.
