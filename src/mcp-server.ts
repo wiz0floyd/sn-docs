@@ -88,7 +88,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const { input } = args as { input: string };
         const suggestions = await suggest(input);
         return {
-          content: [{ type: 'text' as const, text: suggestions.join('\n') }],
+          content: [{ type: 'text' as const, text: JSON.stringify(suggestions.slice(0, 10), null, 2) }],
         };
       }
 

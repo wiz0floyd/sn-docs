@@ -46,7 +46,8 @@ program
 program
   .command('get <url>')
   .description('Fetch article content as Markdown (accepts readerUrl or contentUrl)')
-  .action(async (url: string) => {
+  .option('-l, --lang <lang>', 'Language code for readerUrl resolution', 'en-US')
+  .action(async (url: string, opts: { lang: string }) => {
     try {
       const html = await getContent(url);
       console.log(toMarkdown(html));
