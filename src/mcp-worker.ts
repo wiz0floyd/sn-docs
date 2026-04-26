@@ -27,6 +27,7 @@ function buildServer(): Server {
           properties: {
             query: { type: 'string', description: 'Search terms' },
             lang: { type: 'string', description: 'Language code, e.g. en-US (default), fr-FR, de-DE, ja-JP, ko-KR, pt-BR' },
+            version: { type: 'string', description: 'Release version: "current" (default, latest docs), a release name e.g. "zurich", "yokohama", "xanadu", or "any" (all versions)' },
             limit: { type: 'number', description: 'Results per page (default 10, max 50)' },
             page: { type: 'number', description: 'Page number, 1-based (default 1)' },
           },
@@ -69,12 +70,12 @@ function buildServer(): Server {
     try {
       switch (name) {
         case 'search_docs': {
-          const { query, lang, limit, page } = args as {
-            query: string; lang?: string; limit?: number; page?: number;
+          const { query, lang, version, limit, page } = args as {
+            query: string; lang?: string; version?: string; limit?: number; page?: number;
           };
           const maxResults = Math.min(limit ?? 10, 50);
           const from = ((page ?? 1) - 1) * maxResults;
-          const { items, paging } = await search({ query, lang, maxResults, from });
+          const { items, paging } = await search({ query, lang, version, maxResults, from });
           return {
             content: [{ type: 'text' as const, text: JSON.stringify({ items, paging }, null, 2) }],
           };
