@@ -45,11 +45,30 @@ export async function search(
   });
 
   const lang = options.lang ?? 'en-US';
-  // en-US articles have no lang segment in the URL path; other locales appear as /docs/r/<LANG>/
+  const version = options.version ?? 'current';
+
+  // Lang filter: en-US URLs have no lang segment; others have /r/xx-XX/
   const isRequestedLang = (url: string) =>
     lang === 'en-US'
       ? !/\/docs\/r\/[a-z]{2}-[A-Z]{2}\//.test(url)
       : url.includes(`/docs/r/${lang}/`);
+
+  // Version filter: ServiceNow release names are alphabetical city names.
+  // Versioned URLs: /docs/r/<release>/<product>/... e.g. /docs/r/zurich/itsm/...
+  // Current URLs:   /docs/r/<product>/...           e.g. /docs/r/itsm/...
+  const KNOWN_RELEASES = new Set([
+    'fuji', 'geneva', 'helsinki', 'istanbul', 'jakarta', 'kingston', 'london',
+    'madrid', 'newyork', 'orlando', 'paris', 'quebec', 'rome', 'sandiego',
+    'tokyo', 'utah', 'vancouver', 'washingtondc', 'xanadu', 'yokohama', 'zurich',
+    'australia', 'brazil',
+  ]);
+  const RELEASE_RE = /\/docs\/r\/([a-z]+)\//;
+  const getUrlVersion = (url: string): string => {
+    const m = url.match(RELEASE_RE);
+    return (m && KNOWN_RELEASES.has(m[1])) ? m[1] : 'current';
+  };
+  const isRequestedVersion = (url: string) =>
+    version === 'any' || getUrlVersion(url) === version;
 
   const seen = new Set<string>();
   const items: SearchResultItem[] = [];
@@ -58,6 +77,7 @@ export async function search(
       if (entry.type !== 'TOPIC') continue;
       const t = entry.topic;
       if (!isRequestedLang(t.readerUrl)) continue;
+      if (!isRequestedVersion(t.readerUrl)) continue;
       if (seen.has(t.contentUrl)) continue;
       seen.add(t.contentUrl);
       const excerpt = t.htmlExcerpt.replace(/<[^>]+>/g, '');

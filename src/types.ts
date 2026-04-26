@@ -3,6 +3,7 @@
 export interface SearchOptions {
   query: string;
   lang?: string;
+  version?: string;  // "current" (default), "any", or a release name e.g. "zurich"
   maxResults?: number;
   from?: number;
 }
