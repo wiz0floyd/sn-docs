@@ -9,7 +9,7 @@ import { toMarkdown } from './formatter.js';
 import { DocsApiError } from './types.js';
 
 const server = new Server(
-  { name: 'sn-docs', version: '0.1.0' },
+  { name: 'sn-docs', version: '1.0.0' },
   { capabilities: { tools: {} } },
 );
 
