@@ -44,15 +44,28 @@ export async function search(
     body: JSON.stringify(body),
   });
 
+  const lang = options.lang ?? 'en-US';
+  // en-US articles have no lang segment in the URL path; other locales appear as /docs/r/<LANG>/
+  const isRequestedLang = (url: string) =>
+    lang === 'en-US'
+      ? !/\/docs\/r\/[a-z]{2}-[A-Z]{2}\//.test(url)
+      : url.includes(`/docs/r/${lang}/`);
+
+  const seen = new Set<string>();
   const items: SearchResultItem[] = [];
   for (const result of data.results) {
     for (const entry of result.entries) {
       if (entry.type !== 'TOPIC') continue;
       const t = entry.topic;
+      if (!isRequestedLang(t.readerUrl)) continue;
+      if (seen.has(t.contentUrl)) continue;
+      seen.add(t.contentUrl);
       const excerpt = t.htmlExcerpt.replace(/<[^>]+>/g, '');
       const lastUpdated = t.metadata.find(m => m.key === 'last_updated_date')?.values[0] ?? '';
       items.push({ title: t.title, breadcrumb: t.breadcrumb, excerpt, readerUrl: t.readerUrl, contentUrl: t.contentUrl, lastUpdated });
+      if (items.length >= (options.maxResults ?? 10)) break;
     }
+    if (items.length >= (options.maxResults ?? 10)) break;
   }
   return { items, paging: data.paging };
 }
