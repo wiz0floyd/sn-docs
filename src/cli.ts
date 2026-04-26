@@ -6,22 +6,24 @@ import { DocsApiError } from './types.js';
 const program = new Command()
   .name('sn-docs')
   .description('Query ServiceNow documentation')
-  .version('0.1.0');
+  .version('1.0.0');
 
 program
   .command('search <query>')
   .description('Search ServiceNow docs')
   .option('-l, --lang <lang>', 'Language code', 'en-US')
+  .option('-v, --release-version <version>', 'Release version: "current" (default), a release name e.g. "zurich", or "any"', 'current')
   .option('-n, --limit <n>', 'Results per page', '10')
   .option('-p, --page <n>', 'Page number (1-based)', '1')
   .option('--json', 'Output raw JSON')
-  .action(async (query: string, opts: { lang: string; limit: string; page: string; json?: boolean }) => {
+  .action(async (query: string, opts: { lang: string; releaseVersion: string; limit: string; page: string; json?: boolean }) => {
     try {
       const limit = parseInt(opts.limit, 10);
       const page = parseInt(opts.page, 10);
       const { items, paging } = await search({
         query,
         lang: opts.lang,
+        version: opts.releaseVersion,
         maxResults: limit,
         from: (page - 1) * limit,
       });
