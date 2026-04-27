@@ -25,7 +25,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         type: 'object' as const,
         properties: {
           query: { type: 'string', description: 'Search terms' },
-          lang: { type: 'string', description: 'Language code, e.g. en-US (default), fr-FR, de-DE, ja-JP, ko-KR, pt-BR' },
+          lang: { type: 'string', description: 'BCP-47 language code (default: en-US). Not all locales are available — use the list_locales tool to see valid values.' },
           version: { type: 'string', description: 'Release version: "current" (default, latest docs), a release name e.g. "zurich", "yokohama", "xanadu", or "any" (all versions)' },
           limit: { type: 'number', description: 'Results per page (default 10, max 50)' },
           page: { type: 'number', description: 'Page number, 1-based (default 1)' },

@@ -44,6 +44,7 @@ async function requestText(url: string, init?: RequestInit): Promise<string> {
 export async function search(
   options: SearchOptions,
 ): Promise<{ items: SearchResultItem[]; paging: SearchResponse['paging'] }> {
+  await assertLangSupported(options.lang ?? 'en-US');
   const body = {
     query: options.query,
     lang: options.lang ?? 'en-US',
@@ -111,9 +112,31 @@ export async function suggest(input: string): Promise<string[]> {
   return data.suggestions.map(s => s.value);
 }
 
+let _localesCache: ContentLocale[] | undefined;
+
 export async function getLocales(): Promise<ContentLocale[]> {
-  const data = await request<LocalesResponse>(`${BASE}/locales`);
-  return data.contentLocales;
+  if (!_localesCache) {
+    const data = await request<LocalesResponse>(`${BASE}/locales`);
+    _localesCache = data.contentLocales;
+  }
+  return _localesCache;
+}
+
+/** Exposed for unit tests only — clears the locales cache. */
+export function _resetLocalesCache(): void {
+  _localesCache = undefined;
+}
+
+async function assertLangSupported(lang: string): Promise<void> {
+  if (lang === 'en-US') return;
+  const locales = await getLocales();
+  const supported = locales.map(l => l.lang);
+  if (!supported.includes(lang)) {
+    throw new DocsApiError(
+      400,
+      `Locale '${lang}' is not available. Supported locales: ${supported.join(', ')}`,
+    );
+  }
 }
 
 export async function getContent(url: string): Promise<string> {
