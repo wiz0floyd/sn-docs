@@ -8,6 +8,7 @@ vi.mock('../src/docs-client.js', () => ({
 }));
 
 import worker from '../src/mcp-worker.js';
+import { getContent } from '../src/docs-client.js';
 
 function makeEnv(success = true) {
   return {
@@ -59,5 +60,31 @@ describe('worker routing', () => {
     });
     await worker.fetch(req, env);
     expect(env.RATE_LIMITER.limit).toHaveBeenCalledWith({ key: 'unknown' });
+  });
+});
+
+describe('get_article tool', () => {
+  it('returns Markdown not raw HTML', async () => {
+    vi.mocked(getContent).mockResolvedValue('<h1>Hello</h1>');
+
+    const req = new Request('https://example.com/mcp', {
+      method: 'POST',
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tools/call',
+        params: { name: 'get_article', arguments: { url: 'https://example.com' } },
+      }),
+      headers: {
+        'content-type': 'application/json',
+        'accept': 'application/json, text/event-stream',
+      },
+    });
+
+    const res = await worker.fetch(req, makeEnv());
+    const body = await res.text();
+    // Response is SSE or JSON; either way the converted text should not start with '<'
+    expect(body).toContain('# Hello');
+    expect(body).not.toContain('<h1>');
   });
 });

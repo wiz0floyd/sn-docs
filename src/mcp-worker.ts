@@ -5,7 +5,11 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { search, suggest, getLocales, getContent } from './docs-client.js';
+import { toMarkdownWorker } from './formatter.js';
 import { DocsApiError } from './types.js';
+// Version is inlined by esbuild at bundle time; createRequire is not available in workerd.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { version: pkgVersion } = require('../package.json') as { version: string };
 
 interface Env {
   RATE_LIMITER: { limit(opts: { key: string }): Promise<{ success: boolean }> };
@@ -13,7 +17,7 @@ interface Env {
 
 function buildServer(): Server {
   const server = new Server(
-    { name: 'sn-docs', version: '1.0.0' },
+    { name: 'sn-docs', version: pkgVersion },
     { capabilities: { tools: {} } },
   );
 
@@ -36,7 +40,7 @@ function buildServer(): Server {
       },
       {
         name: 'get_article',
-        description: 'Fetch a ServiceNow documentation article as HTML. Pass contentUrl from search_docs results.',
+        description: 'Fetch a ServiceNow documentation article as Markdown. Pass contentUrl from search_docs results.',
         inputSchema: {
           type: 'object' as const,
           properties: {
@@ -85,7 +89,7 @@ function buildServer(): Server {
           const { url } = args as { url: string };
           const html = await getContent(url);
           return {
-            content: [{ type: 'text' as const, text: html }],
+            content: [{ type: 'text' as const, text: toMarkdownWorker(html) }],
           };
         }
 
