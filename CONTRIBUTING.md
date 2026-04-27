@@ -44,7 +44,7 @@ npm test
 
 ## Versioning
 
-Bump `package.json` version as part of every PR — it is the single source of truth (both `cli.ts` and `mcp-server.ts` read from it at runtime):
+Bump `package.json` version for any PR that changes code — it is the single source of truth (both `cli.ts` and `mcp-server.ts` read from it at runtime). Docs-only PRs (README, CONTRIBUTING.md) do not require a bump.
 
 | Change type | Bump |
 |---|---|

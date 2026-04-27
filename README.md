@@ -131,15 +131,11 @@ Replace `/path/to/sn-docs-mcp.cjs` with the absolute path to the downloaded file
 
 A Cloudflare Worker hosts the same MCP tools over HTTP, making them available to Claude.ai without a local Node.js process. Claude.ai cannot POST directly to the Fluid Docs API, so the worker acts as the intermediary.
 
-The worker is deployed at:
-
-```
-https://sn-docs-mcp.ACCOUNT.workers.dev/mcp
-```
+Deploy your own worker (see below) to get an endpoint URL, then:
 
 ### Add to Claude.ai
 
-In Claude.ai → Settings → Integrations → Add MCP Server, enter the worker URL above.
+In Claude.ai → Settings → Integrations → Add MCP Server, enter your worker URL.
 
 ### Add to Claude Code
 
@@ -148,7 +144,7 @@ In Claude.ai → Settings → Integrations → Add MCP Server, enter the worker 
   "mcpServers": {
     "sn-docs": {
       "type": "http",
-      "url": "https://sn-docs-mcp.ACCOUNT.workers.dev/mcp"
+      "url": "https://<your-worker>.workers.dev/mcp"
     }
   }
 }
