@@ -42,6 +42,16 @@ npm test
 - Include a clear description of what changed and why
 - Link any related issues
 
+## Versioning
+
+Bump `package.json` version as part of every PR — it is the single source of truth (both `cli.ts` and `mcp-server.ts` read from it at runtime):
+
+| Change type | Bump |
+|---|---|
+| Bug fix | patch (`1.0.0` → `1.0.1`) |
+| New feature, backwards-compatible | minor (`1.0.0` → `1.1.0`) |
+| Breaking change | major (`1.0.0` → `2.0.0`) |
+
 ## API notes
 
 The Fluid Docs API base is `https://www.servicenow.com/docs/api/khub`. It is public and requires no authentication. The main endpoints are documented in `src/docs-client.ts`.

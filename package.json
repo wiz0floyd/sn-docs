@@ -1,6 +1,6 @@
 {
   "name": "sn-docs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CLI and MCP server for querying docs.servicenow.com",
   "type": "module",
   "engines": {
