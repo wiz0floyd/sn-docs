@@ -1,11 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { search, suggest, getLocales, getContent } from '../src/docs-client.js';
+import { search, suggest, getLocales, getContent, _resetLocalesCache } from '../src/docs-client.js';
 import { DocsApiError } from '../src/types.js';
 
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
-beforeEach(() => mockFetch.mockReset());
+beforeEach(() => {
+  mockFetch.mockReset();
+  _resetLocalesCache();
+});
 
 function ok(data: unknown) {
   return Promise.resolve({
@@ -70,10 +73,19 @@ describe('search()', () => {
   });
 
   it('passes through lang, maxResults, from options', async () => {
-    mockFetch.mockReturnValueOnce(ok({ ...SEARCH_RESPONSE, results: [] }));
-    await search({ query: 'flow', lang: 'fr-FR', maxResults: 5, from: 10 });
-    const [, init] = mockFetch.mock.calls[0] as [string, RequestInit];
-    expect(JSON.parse(init.body as string)).toEqual({ query: 'flow', lang: 'fr-FR', maxResults: 5, from: 10 });
+    mockFetch
+      .mockReturnValueOnce(ok({ contentLocales: [{ lang: 'en-US', label: 'English', count: 452 }, { lang: 'de-DE', label: 'Deutsch', count: 200 }] }))
+      .mockReturnValueOnce(ok({ ...SEARCH_RESPONSE, results: [] }));
+    await search({ query: 'flow', lang: 'de-DE', maxResults: 5, from: 10 });
+    const [, init] = mockFetch.mock.calls[1] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual({ query: 'flow', lang: 'de-DE', maxResults: 5, from: 10 });
+  });
+
+  it('throws DocsApiError(400) for unsupported locale', async () => {
+    mockFetch.mockReturnValueOnce(ok({ contentLocales: [{ lang: 'en-US', label: 'English', count: 452 }] }));
+    await expect(search({ query: 'incident', lang: 'fr-FR' }))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('fr-FR') });
+    expect(mockFetch).toHaveBeenCalledTimes(1); // locales only, no search call
   });
 
   it('retries once on 5xx then throws DocsApiError', async () => {

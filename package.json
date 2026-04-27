@@ -1,6 +1,6 @@
 {
   "name": "sn-docs",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "CLI and MCP server for querying docs.servicenow.com",
   "type": "module",
   "engines": {
@@ -26,6 +26,7 @@
     "turndown": "^7.2.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@types/node": "^20.0.0",
     "@types/turndown": "^5.0.5",
     "esbuild": "^0.28.0",

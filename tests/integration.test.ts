@@ -14,10 +14,9 @@ describe.skipIf(SKIP)('Integration: live API', () => {
     expect(items[0].contentUrl).toMatch(/\/api\/khub\/maps\//);
   });
 
-  it('search() with lang=fr-FR returns French results', async () => {
-    const { items } = await search({ query: 'incident', lang: 'fr-FR', maxResults: 3 });
-    expect(items.length).toBeGreaterThan(0);
-    expect(items.some(i => i.readerUrl.includes('fr-FR') || i.breadcrumb.length > 0)).toBe(true);
+  it('search() with lang=fr-FR throws DocsApiError (fr-FR not available)', async () => {
+    await expect(search({ query: 'incident', lang: 'fr-FR', maxResults: 3 }))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('fr-FR') });
   });
 
   it('search() pagination works', async () => {
