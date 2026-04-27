@@ -3,3 +3,9 @@ dist/
 release/
 *.js.map
 .worktrees/
+
+# AI workflow files — personal, not working artifacts
+CLAUDE.md
+docs/superpowers/
+.claude/
+.wrangler/
