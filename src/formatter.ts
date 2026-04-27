@@ -55,3 +55,51 @@ export function toMarkdown(html: string): string {
   if (!html.trim()) return '';
   return td.turndown(html).trim();
 }
+
+// DOM-free HTML→Markdown for Cloudflare Workers (no document/DOMParser available).
+// Handles the HTML structures common in ServiceNow docs well enough for LLM consumption.
+export function toMarkdownWorker(html: string): string {
+  if (!html.trim()) return '';
+
+  function stripTags(s: string): string {
+    return s.replace(/<[^>]+>/g, '');
+  }
+  function decodeEntities(s: string): string {
+    return s
+      .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ');
+  }
+
+  return html
+    // Strip nav and ServiceNow UI chrome by class
+    .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+    .replace(/<img[^>]*\/?>/gi, '')
+    .replace(/<[^>]*(zDocsTopicPageDetails|zDocsTopicPageCluster|zDocsTopicReadTime|spacer)[^>]*>[\s\S]*?<\/\w+>/gi, '')
+    // Code blocks before inline code
+    .replace(/<pre[^>]*><code[^>]*>([\s\S]*?)<\/code><\/pre>/gi, (_, t) => `\`\`\`\n${decodeEntities(stripTags(t)).trim()}\n\`\`\`\n\n`)
+    .replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (_, t) => `\`\`\`\n${decodeEntities(stripTags(t)).trim()}\n\`\`\`\n\n`)
+    // Headings
+    .replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, (_, t) => `# ${stripTags(t).trim()}\n\n`)
+    .replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, (_, t) => `## ${stripTags(t).trim()}\n\n`)
+    .replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, (_, t) => `### ${stripTags(t).trim()}\n\n`)
+    .replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, (_, t) => `#### ${stripTags(t).trim()}\n\n`)
+    .replace(/<h5[^>]*>([\s\S]*?)<\/h5>/gi, (_, t) => `##### ${stripTags(t).trim()}\n\n`)
+    .replace(/<h6[^>]*>([\s\S]*?)<\/h6>/gi, (_, t) => `###### ${stripTags(t).trim()}\n\n`)
+    // Inline formatting
+    .replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, (_, t) => `\`${stripTags(t)}\``)
+    .replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, (_, t) => `**${stripTags(t)}**`)
+    .replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, (_, t) => `**${stripTags(t)}**`)
+    .replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, (_, t) => `*${stripTags(t)}*`)
+    .replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, (_, t) => `*${stripTags(t)}*`)
+    .replace(/<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (_, href, text) => `[${stripTags(text)}](${href})`)
+    // Lists
+    .replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_, t) => `- ${stripTags(t).trim()}\n`)
+    // Block elements
+    .replace(/<\/p>/gi, '\n\n').replace(/<\/div>/gi, '\n').replace(/<br\s*\/?>/gi, '\n')
+    // Strip remaining tags
+    .replace(/<[^>]+>/g, '')
+    // Entities and whitespace
+    .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}

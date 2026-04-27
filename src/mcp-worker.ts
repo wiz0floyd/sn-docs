@@ -5,7 +5,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { search, suggest, getLocales, getContent } from './docs-client.js';
-import { toMarkdown } from './formatter.js';
+import { toMarkdownWorker } from './formatter.js';
 import { DocsApiError } from './types.js';
 
 interface Env {
@@ -86,7 +86,7 @@ function buildServer(): Server {
           const { url } = args as { url: string };
           const html = await getContent(url);
           return {
-            content: [{ type: 'text' as const, text: toMarkdown(html) }],
+            content: [{ type: 'text' as const, text: toMarkdownWorker(html) }],
           };
         }
 
