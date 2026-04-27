@@ -5,6 +5,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { search, suggest, getLocales, getContent } from './docs-client.js';
+import { toMarkdown } from './formatter.js';
 import { DocsApiError } from './types.js';
 
 interface Env {
@@ -36,7 +37,7 @@ function buildServer(): Server {
       },
       {
         name: 'get_article',
-        description: 'Fetch a ServiceNow documentation article as HTML. Pass contentUrl from search_docs results.',
+        description: 'Fetch a ServiceNow documentation article as Markdown. Pass contentUrl from search_docs results.',
         inputSchema: {
           type: 'object' as const,
           properties: {
@@ -85,7 +86,7 @@ function buildServer(): Server {
           const { url } = args as { url: string };
           const html = await getContent(url);
           return {
-            content: [{ type: 'text' as const, text: html }],
+            content: [{ type: 'text' as const, text: toMarkdown(html) }],
           };
         }
 
