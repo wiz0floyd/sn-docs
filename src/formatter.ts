@@ -51,33 +51,56 @@ td.addRule('removeChrome', {
   replacement: () => '',
 });
 
+/** Converts HTML to Markdown using Turndown. Requires a DOM (Node.js / browser only). */
 export function toMarkdown(html: string): string {
   if (!html.trim()) return '';
   return td.turndown(html).trim();
 }
 
-// DOM-free HTML→Markdown for Cloudflare Workers (no document/DOMParser available).
-// Handles the HTML structures common in ServiceNow docs well enough for LLM consumption.
+/**
+ * DOM-free HTML→Markdown for Cloudflare Workers.
+ * The workerd runtime does not expose `document` or `DOMParser`, so Turndown cannot be used.
+ * Handles the HTML structures common in ServiceNow docs well enough for LLM consumption.
+ * Chrome stripping is best-effort for deeply nested elements.
+ */
 export function toMarkdownWorker(html: string): string {
   if (!html.trim()) return '';
 
   function stripTags(s: string): string {
     return s.replace(/<[^>]+>/g, '');
   }
-  function decodeEntities(s: string): string {
+  // Decode HTML entities for code block content. Processes &lt;/&gt; before &amp; so that
+  // &amp;lt; → &lt; (one level: text content is "&lt;"), not &amp;lt; → &lt; → < (two levels).
+  function decodeCodeEntities(s: string): string {
     return s
       .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
       .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ');
   }
 
-  return html
-    // Strip nav and ServiceNow UI chrome by class
+  // Extract code blocks first and replace with placeholders so that the entity
+  // decoding pass at the end does not touch their already-decoded content.
+  const codeBlocks: string[] = [];
+  function saveCodeBlock(content: string): string {
+    const idx = codeBlocks.length;
+    codeBlocks.push(`\`\`\`\n${content.trim()}\n\`\`\`\n\n`);
+    return `\x00CODE${idx}\x00`;
+  }
+
+  let s = html
+    // Strip nav and ServiceNow UI chrome by class (best-effort: targets leaf/shallow elements)
     .replace(/<nav[\s\S]*?<\/nav>/gi, '')
     .replace(/<img[^>]*\/?>/gi, '')
-    .replace(/<[^>]*(zDocsTopicPageDetails|zDocsTopicPageCluster|zDocsTopicReadTime|spacer)[^>]*>[\s\S]*?<\/\w+>/gi, '')
-    // Code blocks before inline code
-    .replace(/<pre[^>]*><code[^>]*>([\s\S]*?)<\/code><\/pre>/gi, (_, t) => `\`\`\`\n${decodeEntities(stripTags(t)).trim()}\n\`\`\`\n\n`)
-    .replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (_, t) => `\`\`\`\n${decodeEntities(stripTags(t)).trim()}\n\`\`\`\n\n`)
+    .replace(/<[^>]*(zDocsTopicPageDetails|zDocsTopicPageCluster|zDocsTopicReadTime|spacer)[^>]*>[^<]*<\/\w+>/gi, '')
+    // Extract code blocks before any entity decoding
+    .replace(/<pre[^>]*><code[^>]*>([\s\S]*?)<\/code><\/pre>/gi, (_, t) => saveCodeBlock(decodeCodeEntities(stripTags(t))))
+    .replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (_, t) => saveCodeBlock(decodeCodeEntities(stripTags(t))))
+    // Ordered lists: convert <li> inside <ol> to numbered items before stripping tags
+    .replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, (_, content) => {
+      let i = 0;
+      return content.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_: string, t: string) => `${++i}. ${stripTags(t).trim()}\n`);
+    })
+    // Unordered list wrappers (items handled below)
+    .replace(/<ul[^>]*>|<\/ul>/gi, '')
     // Headings
     .replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, (_, t) => `# ${stripTags(t).trim()}\n\n`)
     .replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, (_, t) => `## ${stripTags(t).trim()}\n\n`)
@@ -91,15 +114,22 @@ export function toMarkdownWorker(html: string): string {
     .replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, (_, t) => `**${stripTags(t)}**`)
     .replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, (_, t) => `*${stripTags(t)}*`)
     .replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, (_, t) => `*${stripTags(t)}*`)
-    .replace(/<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (_, href, text) => `[${stripTags(text)}](${href})`)
-    // Lists
+    // Links — handle both single and double-quoted href
+    .replace(/<a[^>]*href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi, (_, href, text) => `[${stripTags(text)}](${href})`)
+    // Unordered list items (ordered list items already converted above)
     .replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_, t) => `- ${stripTags(t).trim()}\n`)
     // Block elements
     .replace(/<\/p>/gi, '\n\n').replace(/<\/div>/gi, '\n').replace(/<br\s*\/?>/gi, '\n')
     // Strip remaining tags
     .replace(/<[^>]+>/g, '')
-    // Entities and whitespace
+    // HTML entities for non-code content: &lt;/&gt; before &amp; preserves &amp;lt; → &lt;
     .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
+    .replace(/\n{3,}/g, '\n\n');
+
+  // Restore code blocks (already decoded; immune to entity pass above)
+  codeBlocks.forEach((block, i) => {
+    s = s.replace(`\x00CODE${i}\x00`, block);
+  });
+
+  return s.trim();
 }
