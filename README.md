@@ -16,7 +16,6 @@ Three files available from the [latest release](../../releases/latest):
 |---|---|
 | `sn-docs-cli.cjs` | Standalone CLI — requires Node.js 20+ |
 | `sn-docs-mcp.cjs` | MCP server for Claude Code / Claude Desktop — requires Node.js 20+ |
-| `servicenow-docs.skill` | Claude skill for Claude.ai or Claude Code — no Node.js needed |
 
 ```bash
 # CLI
@@ -60,8 +59,8 @@ sn-docs locales          List available languages
 # Search with limit
 sn-docs search "flow designer" --limit 5
 
-# Search in French
-sn-docs search "gestion des incidents" --lang fr-FR
+# Search in German (run "sn-docs locales" to see all available language codes)
+sn-docs search "incident management" --lang de-DE
 
 # Fetch article as Markdown (use contentUrl from search results)
 sn-docs get "https://www.servicenow.com/docs/api/khub/maps/abc/topics/xyz/content"
@@ -128,21 +127,40 @@ Add to your Claude Desktop config:
 
 Replace `/path/to/sn-docs-mcp.cjs` with the absolute path to the downloaded file or `dist/mcp-server.js` if building from source.
 
-## Claude Skill (Claude.ai)
+## Cloudflare MCP (Claude.ai)
 
-`servicenow-docs.skill` is a companion skill that gives Claude direct access to the same Fluid Docs API without requiring a running MCP server. Works in Claude.ai (via the analysis tool) and Claude Code.
+A Cloudflare Worker hosts the same MCP tools over HTTP, making them available to Claude.ai without a local Node.js process. Claude.ai cannot POST directly to the Fluid Docs API, so the worker acts as the intermediary.
 
-### Install
+Deploy your own worker (see below) to get an endpoint URL, then:
 
-Download `servicenow-docs.skill` from the [latest release](../../releases/latest) and install it via your Claude skill manager.
+### Add to Claude.ai
 
-Once installed, Claude will automatically search live ServiceNow documentation when you ask questions like:
+In Claude.ai → Settings → Integrations → Add MCP Server, enter your worker URL.
 
-- *"How does Flow Designer work in ServiceNow?"*
-- *"Find the ServiceNow API for creating incidents"*
-- *"Look up the CMDB discovery documentation"*
+### Add to Claude Code
 
-Claude uses the same endpoints as the MCP server — no Node.js or separate process required.
+```json
+{
+  "mcpServers": {
+    "sn-docs": {
+      "type": "http",
+      "url": "https://<your-worker>.workers.dev/mcp"
+    }
+  }
+}
+```
+
+The worker exposes the same four tools (`search_docs`, `get_article`, `suggest`, `list_locales`) and applies a rate limit of 60 requests per minute per IP.
+
+### Self-host
+
+```bash
+npm run build
+npm run build:worker
+npx wrangler deploy
+```
+
+See the [Wrangler deploy documentation](https://developers.cloudflare.com/workers/wrangler/commands/#deploy) for configuration options.
 
 ## Development
 
