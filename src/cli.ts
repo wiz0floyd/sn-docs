@@ -1,12 +1,15 @@
+import { createRequire } from 'module';
 import { Command } from 'commander';
 import { search, suggest, getLocales, getContent } from './docs-client.js';
 import { toMarkdown } from './formatter.js';
 import { DocsApiError } from './types.js';
 
+const { version } = createRequire(import.meta.url)('../package.json') as { version: string };
+
 const program = new Command()
   .name('sn-docs')
   .description('Query ServiceNow documentation')
-  .version('1.0.0');
+  .version(version);
 
 program
   .command('search <query>')
@@ -20,6 +23,14 @@ program
     try {
       const limit = parseInt(opts.limit, 10);
       const page = parseInt(opts.page, 10);
+      if (isNaN(limit) || limit < 1) {
+        process.stderr.write('Error: --limit must be a positive integer\n');
+        process.exit(1);
+      }
+      if (isNaN(page) || page < 1) {
+        process.stderr.write('Error: --page must be a positive integer\n');
+        process.exit(1);
+      }
       const { items, paging } = await search({
         query,
         lang: opts.lang,

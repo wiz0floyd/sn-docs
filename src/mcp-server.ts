@@ -1,3 +1,4 @@
+import { createRequire } from 'module';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -8,8 +9,10 @@ import { search, suggest, getLocales, getContent } from './docs-client.js';
 import { toMarkdown } from './formatter.js';
 import { DocsApiError } from './types.js';
 
+const { version } = createRequire(import.meta.url)('../package.json') as { version: string };
+
 const server = new Server(
-  { name: 'sn-docs', version: '1.0.0' },
+  { name: 'sn-docs', version },
   { capabilities: { tools: {} } },
 );
 

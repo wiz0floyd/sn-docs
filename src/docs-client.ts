@@ -5,14 +5,26 @@ import type {
 import { DocsApiError } from './types.js';
 
 const BASE = 'https://www.servicenow.com/docs/api/khub';
+const TIMEOUT_MS = 10_000;
 
 async function fetchWithRetry(url: string, init?: RequestInit): Promise<Response> {
   let lastRes: Response | undefined;
   for (let attempt = 0; attempt < 2; attempt++) {
     if (attempt > 0) await new Promise<void>(r => setTimeout(r, 500));
-    const res = await fetch(url, init);
-    if (res.ok || res.status < 500) return res;
-    lastRes = res;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    try {
+      const res = await fetch(url, { ...init, signal: controller.signal });
+      if (res.ok || res.status < 500) return res;
+      lastRes = res;
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw new DocsApiError(408, `Request timed out after ${TIMEOUT_MS / 1000}s`);
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
   }
   return lastRes!;
 }
