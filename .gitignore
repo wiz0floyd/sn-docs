@@ -9,3 +9,8 @@ CLAUDE.md
 docs/superpowers/
 .claude/
 .wrangler/
+.tmp-probe/
+
+# Personal/internal docs not for public repo
+docs/arb-submission.md
+docs/stream-connect-direct-kafka-producerv2.md
