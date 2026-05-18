@@ -20,7 +20,14 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run build:worker
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build worker
+        run: npm run build:worker
 
       - uses: cloudflare/wrangler-action@v3
         with:
