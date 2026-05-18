@@ -49,6 +49,7 @@ sn-docs locales          List available languages
 | Flag | Commands | Default | Description |
 |---|---|---|---|
 | `-l, --lang` | search, get | `en-US` | Language code |
+| `-v, --release-version` | search | `current` | Release version: `current` (default), a release name (e.g. `zurich`), or `any` for all releases |
 | `-n, --limit` | search | `10` | Results per page |
 | `-p, --page` | search | `1` | Page number |
 | `--json` | search | — | Raw JSON output |
@@ -62,6 +63,12 @@ sn-docs search "flow designer" --limit 5
 # Search in German (run "sn-docs locales" to see all available language codes)
 sn-docs search "incident management" --lang de-DE
 
+# Search a specific release
+sn-docs search "flow designer" --release-version zurich
+
+# Search across all releases
+sn-docs search "incident" --release-version any
+
 # Fetch article as Markdown (use contentUrl from search results)
 sn-docs get "https://www.servicenow.com/docs/api/khub/maps/abc/topics/xyz/content"
 
@@ -71,6 +78,13 @@ sn-docs suggest "flow des"
 # List available languages
 sn-docs locales
 ```
+
+### Release versions
+
+The `--release-version` flag accepts:
+- `current` (default) — docs not pinned to a specific release
+- `any` — all releases combined
+- A release name: `fuji`, `geneva`, `helsinki`, `istanbul`, `jakarta`, `kingston`, `london`, `madrid`, `newyork`, `orlando`, `paris`, `quebec`, `rome`, `sandiego`, `tokyo`, `utah`, `vancouver`, `washingtondc`, `xanadu`, `yokohama`, `zurich`, `australia`, `brazil`
 
 ### Search output
 
