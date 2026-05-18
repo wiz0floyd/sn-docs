@@ -28,6 +28,22 @@ describe('toMarkdown()', () => {
     expect(result).toContain('const x = 1;');
   });
 
+  it('preserves language tag from class="language-javascript"', () => {
+    const result = toMarkdown('<pre><code class="language-javascript">const x = 1;</code></pre>');
+    expect(result).toContain('```javascript');
+    expect(result).toContain('const x = 1;');
+  });
+
+  it('preserves language tag from class="language-python"', () => {
+    const result = toMarkdown('<pre><code class="language-python">print("hi")</code></pre>');
+    expect(result).toContain('```python');
+  });
+
+  it('produces unlabelled fenced block when no language class is present', () => {
+    const result = toMarkdown('<pre><code>plain text</code></pre>');
+    expect(result).toMatch(/^```\n/m);
+  });
+
   it('converts bold text', () => {
     expect(toMarkdown('<strong>bold</strong>')).toBe('**bold**');
   });
@@ -102,6 +118,22 @@ describe('toMarkdownWorker()', () => {
     const result = toMarkdownWorker('<pre><code>const x = 1;</code></pre>');
     expect(result).toContain('```');
     expect(result).toContain('const x = 1;');
+  });
+
+  it('preserves language tag from class="language-javascript"', () => {
+    const result = toMarkdownWorker('<pre><code class="language-javascript">const x = 1;</code></pre>');
+    expect(result).toContain('```javascript');
+    expect(result).toContain('const x = 1;');
+  });
+
+  it('preserves language tag from class="language-python"', () => {
+    const result = toMarkdownWorker('<pre><code class="language-python">print("hi")</code></pre>');
+    expect(result).toContain('```python');
+  });
+
+  it('produces unlabelled fenced block when no language class is present', () => {
+    const result = toMarkdownWorker('<pre><code>plain text</code></pre>');
+    expect(result).toMatch(/^```\n/m);
   });
 
   it('does not double-decode escaped HTML entities in code blocks', () => {
