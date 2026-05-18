@@ -11,7 +11,7 @@
     "sn-docs-mcp": "bin/sn-docs-mcp.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "node -e \"require('fs').rmSync('dist', {recursive:true,force:true})\" && tsc",
     "build:worker": "esbuild src/mcp-worker.ts --bundle --platform=browser --format=esm --target=esnext --outfile=dist/mcp-worker.js",
     "dev:cli": "tsx src/cli.ts",
     "dev:mcp": "tsx src/mcp-server.ts",
