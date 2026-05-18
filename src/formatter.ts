@@ -37,6 +37,17 @@ td.addRule('listItem', {
   },
 });
 
+// Preserve language tag from <pre><code class="language-*"> blocks
+td.addRule('fencedCodeBlock', {
+  filter: (node: HTMLElement) => node.nodeName === 'PRE' && node.firstChild?.nodeName === 'CODE',
+  replacement: (_: string, node: HTMLElement) => {
+    const code = node.firstChild as HTMLElement;
+    const cls = typeof code.getAttribute === 'function' ? (code.getAttribute('class') ?? '') : '';
+    const lang = cls.replace(/.*\blanguage-(\S+)\b.*/, '$1').trim();
+    return `\`\`\`${lang}\n${code.textContent ?? ''}\n\`\`\`\n\n`;
+  },
+});
+
 // Strip UI chrome by class name
 td.addRule('removeChrome', {
   filter: (node: HTMLElement) => {
@@ -80,9 +91,9 @@ export function toMarkdownWorker(html: string): string {
   // Extract code blocks first and replace with placeholders so that the entity
   // decoding pass at the end does not touch their already-decoded content.
   const codeBlocks: string[] = [];
-  function saveCodeBlock(content: string): string {
+  function saveCodeBlock(content: string, lang = ''): string {
     const idx = codeBlocks.length;
-    codeBlocks.push(`\`\`\`\n${content.trim()}\n\`\`\`\n\n`);
+    codeBlocks.push(`\`\`\`${lang}\n${content.trim()}\n\`\`\`\n\n`);
     return `\x00CODE${idx}\x00`;
   }
 
@@ -91,8 +102,11 @@ export function toMarkdownWorker(html: string): string {
     .replace(/<nav[\s\S]*?<\/nav>/gi, '')
     .replace(/<img[^>]*\/?>/gi, '')
     .replace(/<[^>]*(zDocsTopicPageDetails|zDocsTopicPageCluster|zDocsTopicReadTime|spacer)[^>]*>[^<]*<\/\w+>/gi, '')
-    // Extract code blocks before any entity decoding
-    .replace(/<pre[^>]*><code[^>]*>([\s\S]*?)<\/code><\/pre>/gi, (_, t) => saveCodeBlock(decodeCodeEntities(stripTags(t))))
+    // Extract code blocks before any entity decoding; capture language from class="language-*"
+    .replace(/<pre[^>]*><code([^>]*)>([\s\S]*?)<\/code><\/pre>/gi, (_, attrs: string, t: string) => {
+      const m = attrs.match(/class=["']?language-([^\s"']+)/i);
+      return saveCodeBlock(decodeCodeEntities(stripTags(t)), m ? m[1] : '');
+    })
     .replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (_, t) => saveCodeBlock(decodeCodeEntities(stripTags(t))))
     // Ordered lists: convert <li> inside <ol> to numbered items before stripping tags
     .replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, (_, content) => {
