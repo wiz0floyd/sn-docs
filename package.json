@@ -1,6 +1,6 @@
 {
   "name": "sn-docs",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "description": "CLI and MCP server for querying docs.servicenow.com",
   "type": "module",
   "engines": {
@@ -18,7 +18,7 @@
     "test": "vitest run",
     "test:integration": "INTEGRATION=true vitest run tests/integration.test.ts",
     "lint": "tsc --noEmit",
-    "build:release": "node -e \"require('fs').mkdirSync('release',{recursive:true})\" && npx esbuild src/cli.ts --bundle --platform=node --target=node20 --format=cjs --outfile=release/sn-docs-cli.cjs --banner:js=\"#!/usr/bin/env node\" && npx esbuild src/mcp-server.ts --bundle --platform=node --target=node20 --format=cjs --outfile=release/sn-docs-mcp.cjs --banner:js=\"#!/usr/bin/env node\""
+    "build:release": "node -e \"require('fs').mkdirSync('release',{recursive:true})\" && npx esbuild src/cli.ts --bundle --platform=node --target=node20 --format=esm --outfile=release/sn-docs-cli.mjs --banner:js=\"#!/usr/bin/env node\" && npx esbuild src/mcp-server.ts --bundle --platform=node --target=node20 --format=esm --outfile=release/sn-docs-mcp.mjs --banner:js=\"#!/usr/bin/env node\" && npx esbuild src/mcp-worker.ts --bundle --platform=browser --format=esm --target=esnext --outfile=release/sn-docs-mcp-worker.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",

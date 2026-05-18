@@ -14,9 +14,18 @@ describe.skipIf(SKIP)('Integration: live API', () => {
     expect(items[0].contentUrl).toMatch(/\/api\/khub\/maps\//);
   });
 
-  it('search() with lang=fr-FR throws DocsApiError (fr-FR not available)', async () => {
-    await expect(search({ query: 'incident', lang: 'fr-FR', maxResults: 3 }))
-      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('fr-FR') });
+  it('search() with unsupported lang throws DocsApiError', async () => {
+    await expect(search({ query: 'incident', lang: 'xx-XX', maxResults: 3 }))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('xx-XX') });
+  });
+
+  it('search() with lang=fr-FR and version=any returns results', async () => {
+    // The current release (Australia) is pre-GA and lacks translated docs, so
+    // non-English results only exist under versioned URLs (e.g. /docs/r/fr-FR/zurich/).
+    // Use version="any" until Australia ships with translations.
+    const { items } = await search({ query: 'gestion des incidents', lang: 'fr-FR', version: 'any', maxResults: 3 });
+    expect(items.length).toBeGreaterThan(0);
+    expect(items[0].readerUrl).toContain('/fr-FR/');
   });
 
   it('search() pagination works', async () => {
