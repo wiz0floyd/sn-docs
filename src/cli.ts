@@ -42,6 +42,11 @@ program
         console.log(JSON.stringify({ items, paging }, null, 2));
         return;
       }
+      if (items.length === 0) {
+        console.log('No results found.');
+        if (opts.lang !== 'en-US') console.log(`Tip: try without --lang (en-US has the most coverage).`);
+        return;
+      }
       console.log(`Found ${paging.totalResultsCount.toLocaleString()} results (page ${paging.currentPage} of ${Math.ceil(paging.totalResultsCount / limit)})\n`);
       for (const item of items) {
         console.log(`## ${item.title}`);
@@ -62,7 +67,7 @@ program
   .option('-l, --lang <lang>', 'Language code for readerUrl resolution', 'en-US')
   .action(async (url: string, opts: { lang: string }) => {
     try {
-      const html = await getContent(url);
+      const html = await getContent(url, opts.lang !== 'en-US' ? opts.lang : undefined);
       console.log(toMarkdown(html));
     } catch (err) {
       handleError(err);

@@ -41,6 +41,17 @@ async function requestText(url: string, init?: RequestInit): Promise<string> {
   return res.text();
 }
 
+// Version filter: ServiceNow release names are alphabetical city names.
+// Versioned URLs: /docs/r/<release>/<product>/... e.g. /docs/r/zurich/itsm/...
+// Current URLs:   /docs/r/<product>/...           e.g. /docs/r/itsm/...
+const KNOWN_RELEASES = new Set([
+  'fuji', 'geneva', 'helsinki', 'istanbul', 'jakarta', 'kingston', 'london',
+  'madrid', 'newyork', 'orlando', 'paris', 'quebec', 'rome', 'sandiego',
+  'tokyo', 'utah', 'vancouver', 'washingtondc', 'xanadu', 'yokohama', 'zurich',
+  'australia', 'brazil',
+]);
+const RELEASE_RE = /\/docs\/r\/([a-z]+)\//;
+
 export async function search(
   options: SearchOptions,
 ): Promise<{ items: SearchResultItem[]; paging: SearchResponse['paging'] }> {
@@ -65,17 +76,6 @@ export async function search(
     lang === 'en-US'
       ? !/\/docs\/r\/[a-z]{2}-[A-Z]{2}\//.test(url)
       : url.includes(`/docs/r/${lang}/`);
-
-  // Version filter: ServiceNow release names are alphabetical city names.
-  // Versioned URLs: /docs/r/<release>/<product>/... e.g. /docs/r/zurich/itsm/...
-  // Current URLs:   /docs/r/<product>/...           e.g. /docs/r/itsm/...
-  const KNOWN_RELEASES = new Set([
-    'fuji', 'geneva', 'helsinki', 'istanbul', 'jakarta', 'kingston', 'london',
-    'madrid', 'newyork', 'orlando', 'paris', 'quebec', 'rome', 'sandiego',
-    'tokyo', 'utah', 'vancouver', 'washingtondc', 'xanadu', 'yokohama', 'zurich',
-    'australia', 'brazil',
-  ]);
-  const RELEASE_RE = /\/docs\/r\/([a-z]+)\//;
   const getUrlVersion = (url: string): string => {
     const m = url.match(RELEASE_RE);
     return (m && KNOWN_RELEASES.has(m[1])) ? m[1] : 'current';
@@ -139,12 +139,23 @@ async function assertLangSupported(lang: string): Promise<void> {
   }
 }
 
-export async function getContent(url: string): Promise<string> {
-  const contentUrl = await resolveContentUrl(url);
+function extractLangFromUrl(url: string): string {
+  const m = url.match(/\/docs\/r\/([a-z]{2}-[A-Z]{2})\//);
+  return m ? m[1] : 'en-US';
+}
+
+function extractVersionFromUrl(url: string): string {
+  const stripped = url.replace(/\/docs\/r\/[a-z]{2}-[A-Z]{2}\//, '/docs/r/');
+  const m = stripped.match(RELEASE_RE);
+  return (m && KNOWN_RELEASES.has(m[1])) ? m[1] : 'current';
+}
+
+export async function getContent(url: string, lang?: string): Promise<string> {
+  const contentUrl = await resolveContentUrl(url, lang);
   return requestText(contentUrl);
 }
 
-async function resolveContentUrl(url: string): Promise<string> {
+async function resolveContentUrl(url: string, explicitLang?: string): Promise<string> {
   if (url.includes('/api/khub/maps/')) return url;
 
   const match = url.match(/\/docs\/r\/(.+)/);
@@ -154,7 +165,11 @@ async function resolveContentUrl(url: string): Promise<string> {
   const topicSlug = prettyPath.split('/').pop()?.replace(/\.html$/, '') ?? prettyPath;
   const query = topicSlug.replace(/-/g, ' ');
 
-  const { items } = await search({ query, maxResults: 10 });
+  const urlLang = extractLangFromUrl(url);
+  const lang = urlLang !== 'en-US' ? urlLang : (explicitLang ?? 'en-US');
+  const version = extractVersionFromUrl(url);
+
+  const { items } = await search({ query, maxResults: 10, lang, version });
   const found = items.find(
     item => item.readerUrl === url || item.readerUrl.endsWith(prettyPath),
   );

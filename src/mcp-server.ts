@@ -40,6 +40,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         type: 'object' as const,
         properties: {
           url: { type: 'string', description: 'contentUrl or readerUrl from search_docs results' },
+          lang: { type: 'string', description: 'BCP-47 language code override (default: inferred from URL, fallback en-US)' },
         },
         required: ['url'],
       },
@@ -75,14 +76,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const maxResults = Math.min(limit ?? 10, 50);
         const from = ((page ?? 1) - 1) * maxResults;
         const { items, paging } = await search({ query, lang, version, maxResults, from });
+        if (items.length === 0) {
+          const hint = lang && lang !== 'en-US'
+            ? ` No results for lang="${lang}" — try omitting lang (en-US has the most coverage).`
+            : ' Try different search terms or a broader query.';
+          return {
+            content: [{ type: 'text' as const, text: `No results found.${hint}` }],
+          };
+        }
         return {
           content: [{ type: 'text' as const, text: JSON.stringify({ items, paging }, null, 2) }],
         };
       }
 
       case 'get_article': {
-        const { url } = args as { url: string };
-        const html = await getContent(url);
+        const { url, lang } = args as { url: string; lang?: string };
+        const html = await getContent(url, lang);
         return {
           content: [{ type: 'text' as const, text: toMarkdown(html) }],
         };
