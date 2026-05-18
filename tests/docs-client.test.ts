@@ -83,8 +83,8 @@ describe('search()', () => {
 
   it('throws DocsApiError(400) for unsupported locale', async () => {
     mockFetch.mockReturnValueOnce(ok({ contentLocales: [{ lang: 'en-US', label: 'English', count: 452 }] }));
-    await expect(search({ query: 'incident', lang: 'fr-FR' }))
-      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('fr-FR') });
+    await expect(search({ query: 'incident', lang: 'xx-XX' }))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('xx-XX') });
     expect(mockFetch).toHaveBeenCalledTimes(1); // locales only, no search call
   });
 
@@ -172,5 +172,43 @@ describe('getContent()', () => {
     const result = await getContent('https://www.servicenow.com/docs/api/khub/maps/map1/topics/t1/content');
     expect(result).toBe('<div>Retry</div>');
     expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('resolves versioned readerUrl by searching with correct version', async () => {
+    const versionedTopic = {
+      ...SEARCH_RESPONSE.results[0].entries[0].topic,
+      readerUrl: 'https://www.servicenow.com/docs/r/zurich/itsm/incident.html',
+    };
+    const versionedResponse = {
+      ...SEARCH_RESPONSE,
+      results: [{ ...SEARCH_RESPONSE.results[0], entries: [{ ...SEARCH_RESPONSE.results[0].entries[0], topic: versionedTopic }] }],
+    };
+    mockFetch
+      .mockReturnValueOnce(ok(versionedResponse))
+      .mockReturnValueOnce(Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve('<div>Zurich</div>') }));
+    const result = await getContent('https://www.servicenow.com/docs/r/zurich/itsm/incident.html');
+    expect(result).toBe('<div>Zurich</div>');
+    // version is client-side filtering, not in the POST body; verify lang is correct
+    const body = JSON.parse((mockFetch.mock.calls[0] as [string, RequestInit])[1].body as string);
+    expect(body).toMatchObject({ lang: 'en-US' });
+  });
+
+  it('resolves localized readerUrl by searching with correct lang', async () => {
+    const frTopic = {
+      ...SEARCH_RESPONSE.results[0].entries[0].topic,
+      readerUrl: 'https://www.servicenow.com/docs/r/fr-FR/itsm/incident.html',
+    };
+    const frResponse = {
+      ...SEARCH_RESPONSE,
+      results: [{ ...SEARCH_RESPONSE.results[0], entries: [{ ...SEARCH_RESPONSE.results[0].entries[0], topic: frTopic }] }],
+    };
+    mockFetch
+      .mockReturnValueOnce(ok({ contentLocales: [{ lang: 'en-US', label: 'English', count: 452 }, { lang: 'fr-FR', label: 'Français', count: 414 }] }))
+      .mockReturnValueOnce(ok(frResponse))
+      .mockReturnValueOnce(Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve('<div>French</div>') }));
+    const result = await getContent('https://www.servicenow.com/docs/r/fr-FR/itsm/incident.html');
+    expect(result).toBe('<div>French</div>');
+    const body = JSON.parse((mockFetch.mock.calls[1] as [string, RequestInit])[1].body as string);
+    expect(body).toMatchObject({ lang: 'fr-FR' });
   });
 });
