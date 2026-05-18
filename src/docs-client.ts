@@ -77,7 +77,9 @@ export async function search(
       ? !/\/docs\/r\/[a-z]{2}-[A-Z]{2}\//.test(url)
       : url.includes(`/docs/r/${lang}/`);
   const getUrlVersion = (url: string): string => {
-    const m = url.match(RELEASE_RE);
+    // Strip locale segment (/r/fr-FR/) before checking for release name
+    const stripped = url.replace(/\/docs\/r\/[a-z]{2}-[A-Z]{2}\//, '/docs/r/');
+    const m = stripped.match(RELEASE_RE);
     return (m && KNOWN_RELEASES.has(m[1])) ? m[1] : 'current';
   };
   const isRequestedVersion = (url: string) =>
